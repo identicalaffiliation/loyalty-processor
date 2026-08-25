@@ -1,0 +1,118 @@
+services:
+  inventory-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${INVENTORY_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5430:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${INVENTORY_DB}"]
+      retries: 5
+      timeout: 10s
+      interval: 10s
+
+  orders-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${ORDERS_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5431:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d ${ORDERS_DB}" ]
+      retries: 5
+      timeout: 10s
+      interval: 10s
+
+  payments-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${PAYMENTS_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d ${PAYMENTS_DB}" ]
+      retries: 5
+      timeout: 10s
+      interval: 10s
+
+  inventory-migrator:
+    build:
+      context: ./migrator
+    environment:
+      DB_URL: ${INVENTORY_DB_URL}
+      MIGRATIONS_PATH: ./migrations/inventory
+    volumes:
+      - ./migrator/configs/migrator.yml:/app/config.yml:ro
+    depends_on:
+      inventory-postgres:
+        condition: service_healthy
+
+  loyalty-zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.8
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/localhost/2181'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  loyalty-kafka:
+    image: confluentinc/cp-kafka:7.7.8
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: loyalty-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://loyalty-kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/localhost/9092'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      loyalty-zookeeper:
+        condition: service_healthy
+
+  topic-creator:
+    build:
+      context: ./topic-creator
+    volumes:
+      - ./topic-creator/configs/topic-creator.yml:/app/config.yml:ro
+    depends_on:
+      loyalty-kafka:
+        condition: service_healthy
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    environment:
+      KAFKA_CLUSTERS_0_NAME: loyalty
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: loyalty-kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: loyalty-zookeeper:2181
+    ports:
+      - "4200:8080"
+    depends_on:
+      loyalty-zookeeper:
+        condition: service_healthy
+      loyalty-kafka:
+        condition: service_healthy
+volumes:
+  postgres_data:
