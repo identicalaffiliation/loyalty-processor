@@ -1,0 +1,11 @@
+logger:
+  format: text
+  level: debug
+
+kafka:
+  host: loyalty-kafka
+  port: 9092
+  conn_type: tcp
+  topics: [orders, payments]
+  partitions: 1
+  replicas: 1

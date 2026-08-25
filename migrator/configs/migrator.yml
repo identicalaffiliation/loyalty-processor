@@ -1,0 +1,4 @@
+logger:
+  format: text
+  level: debug
+
