@@ -101,6 +101,39 @@ services:
     depends_on:
       loyalty-kafka:
         condition: service_healthy
+
+  seed:
+    build:
+      context: .
+      dockerfile: ./inventory/cmd/seed/Dockerfile
+    environment:
+      DB_URL: ${INVENTORY_DB_URL}
+    volumes:
+      - ./inventory/configs/inventory.yml:/app/config.yml:ro
+    depends_on:
+      inventory-postgres:
+        condition: service_healthy
+      inventory-migrator:
+        condition: service_completed_successfully
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: ./inventory/Dockerfile
+    environment:
+      DB_URL: ${INVENTORY_DB_URL}
+    volumes:
+      - ./inventory/configs/inventory.yml:/app/config.yml:ro
+    ports:
+      - "50051:50051"
+    depends_on:
+      inventory-postgres:
+        condition: service_healthy
+      inventory-migrator:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     environment:

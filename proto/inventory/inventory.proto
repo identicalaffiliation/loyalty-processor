@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package inventory.v1;
+
+option go_package = "github.com/identicalaffiliation/loyalty-processor/gen/inventory/v1;inventoryv1";
+
+service InventoryService {
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
+}
+
+message ReserveStockRequest {
+  string product_id = 1;
+}
+
+message ReserveStockResponse {}
+
+message ReleaseStockRequest {
+  string product_id = 1;
+}
+
+message ReleaseStockResponse {}
