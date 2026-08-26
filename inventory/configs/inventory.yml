@@ -1,0 +1,11 @@
+logger:
+  format: text
+  level: debug
+
+postgres:
+  max_lifetime: 20s
+  max_conns: 10
+
+server:
+  port: 50051
+  connection_type: tcp
