@@ -9,6 +9,7 @@ import (
 
 type OrdersRepository interface {
 	CreateOrder(ctx context.Context, order *domain.Order) (*domain.Order, error)
+	GetOrdersByUser(ctx context.Context, id uuid.UUID) ([]*domain.Order, error)
 }
 
 type OutboxRepository interface {

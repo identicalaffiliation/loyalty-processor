@@ -3,12 +3,12 @@ package output
 import "github.com/identicalaffiliation/loyalty-processor/orders/internal/domain"
 
 type CreateOrderResponse struct {
-	Order OrderResponse `json:"order"`
+	Order Order `json:"order"`
 }
 
 func NewCreateOrderResponse(order *domain.Order) *CreateOrderResponse {
 	return &CreateOrderResponse{
-		Order: *NewOrderResponse(order.ID,
+		Order: *NewOrder(order.ID,
 			order.UserID,
 			order.ProductID,
 			order.Amount,

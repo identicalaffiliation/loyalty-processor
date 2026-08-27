@@ -67,8 +67,9 @@ func main() {
 	}()
 
 	wg := &sync.WaitGroup{}
-	outbox := postgres.NewOutboxRepository(postgresPool)
 
+	outbox := postgres.NewOutboxRepository(postgresPool)
+	orders := postgres.NewOrdersRepository(postgresPool)
 	txManager := postgres.NewTxManager(postgresPool)
 
 	client, cleanup, err := rpc.NewInventoryClient(&cfg.InventoryServiceConfig)
@@ -83,8 +84,8 @@ func main() {
 	defer cleanup()
 
 	create := application.NewCreateOrderUsecase(txManager, slogger, client)
-
-	server := httpserver.RegisterRoutes(&cfg.ServerConfig, create)
+	get := application.NewGetOrdersUsecase(orders, slogger)
+	server := httpserver.RegisterRoutes(&cfg.ServerConfig, create, get)
 
 	go func() {
 		slogger.Debug("server started listen port", cfg.ServerConfig.Port)
@@ -117,7 +118,7 @@ func main() {
 
 	<-notify.Done()
 	wg.Wait()
-	
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ServerConfig.ShutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
