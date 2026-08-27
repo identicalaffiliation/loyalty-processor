@@ -17,6 +17,7 @@ lint:
 	cd topic-creator && golangci-lint run ./...
 	cd inventory && golangci-lint run ./...
 	cd orders && golangci-lint run ./...
+	cd payments && golangci-lint run ./...
 
 .PHONY: create_topics
 create_topics:
@@ -32,6 +33,7 @@ migrate_up:
 up:
 	docker compose up -d --build inventory-service
 	docker compose up -d --build orders-service
+	docker compose up -d --build payments-service
 
 .PHONY: proto
 proto:
@@ -44,4 +46,5 @@ proto:
 
 .PHONY: seed
 seed:
-	docker compose up -d --build seed
+	docker compose up -d --build inventory-seed
+	docker compose up -d --build payments-seed

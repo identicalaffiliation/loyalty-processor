@@ -1,6 +1,6 @@
 module github.com/identicalaffiliation/loyalty-processor/orders
 
-go 1.26.3
+go 1.26.0
 
 require (
 	github.com/google/uuid v1.6.0
