@@ -18,7 +18,7 @@ func (u *InventoryUsecase) ReserveStock(ctx context.Context, productID uuid.UUID
 			"failed to reserve stock",
 			"error", err,
 		)
-		return err
+		return domain.ErrInternal
 	}
 
 	return nil

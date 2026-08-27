@@ -125,8 +125,6 @@ services:
     depends_on:
       inventory-postgres:
         condition: service_healthy
-      inventory-migrator:
-        condition: service_completed_successfully
 
   inventory-service:
     build:
@@ -141,10 +139,20 @@ services:
     depends_on:
       inventory-postgres:
         condition: service_healthy
-      inventory-migrator:
-        condition: service_completed_successfully
-      seed:
-        condition: service_completed_successfully
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: ./orders/Dockerfile
+    environment:
+      DB_URL: ${ORDERS_DB_URL}
+    volumes:
+      - ./orders/configs/orders.yml:/app/config.yml:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      orders-postgres:
+        condition: service_healthy
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
