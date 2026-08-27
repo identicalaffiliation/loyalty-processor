@@ -126,7 +126,7 @@ services:
       loyalty-kafka:
         condition: service_healthy
 
-  seed:
+  inventory-seed:
     build:
       context: .
       dockerfile: ./inventory/cmd/seed/Dockerfile
@@ -136,6 +136,17 @@ services:
       - ./inventory/configs/inventory.yml:/app/config.yml:ro
     depends_on:
       inventory-postgres:
+        condition: service_healthy
+  payments-seed:
+    build:
+      context: .
+      dockerfile: ./payments/cmd/seed/Dockerfile
+    environment:
+      DB_URL: ${PAYMENTS_DB_URL}
+    volumes:
+      - ./payments/configs/payments.yml:/app/config.yml:ro
+    depends_on:
+      payments-postgres:
         condition: service_healthy
 
   inventory-service:
@@ -164,6 +175,18 @@ services:
       - "8080:8080"
     depends_on:
       orders-postgres:
+        condition: service_healthy
+
+  payments-service:
+    build:
+      context: .
+      dockerfile: ./payments/Dockerfile
+    environment:
+      DB_URL: ${PAYMENTS_DB_URL}
+    volumes:
+      - ./payments/configs/payments.yml:/app/config.yml:ro
+    depends_on:
+      payments-postgres:
         condition: service_healthy
 
   kafka-ui:

@@ -1,0 +1,24 @@
+logger:
+  format: text
+  level: debug
+
+postgres:
+  max_conns: 10
+  max_lifetime: 20s
+
+kafka:
+  brokers: [loyalty-kafka:9092]
+  consume_topic: orders
+  produce_topic: payments
+  id: payments-service
+  capacity: 50
+  batch_timeout: 500ms
+  partition: 0
+  batch_size: 50
+  attempts: 5
+  read_timeout: 5s
+  write_timeout: 5s
+
+outbox:
+  tick: 250ms
+  limit: 50
