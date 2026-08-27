@@ -21,3 +21,10 @@ func NewEvent(orderId uuid.UUID, data []byte) *Event {
 		Payload: data,
 	}
 }
+
+type PaymentFailedPayload struct {
+	OrderID uuid.UUID `json:"order_id"`
+	UserID  uuid.UUID `json:"user_id"`
+	Amount  int64     `json:"amount"`
+	Reason  string    `json:"reason"`
+}

@@ -23,15 +23,48 @@ func NewPayOrderUsecase(logger ports.Logger, manager ports.TxManager) *PayOrderU
 	}
 }
 
-func (u *PayOrderUsecase) ProcessOrder(ctx context.Context, orderID uuid.UUID, payload *domain.Order) error {
+func (u *PayOrderUsecase) ProcessOrder(
+	ctx context.Context,
+	orderID uuid.UUID,
+	payload *domain.Order,
+) error {
 	return u.txManager.WithTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		balances := postgres.NewBalancesRepository(tx)
 		payments := postgres.NewPaymentsRepository(tx)
 		outbox := postgres.NewOutboxRepository(tx)
 
-		if err := balances.PayOrder(ctx, payload.UserID, payload.Amount); err != nil {
-			if errors.Is(err, domain.ErrBalanceNotFound) || errors.Is(err, domain.ErrInvalidBalance) {
-				return err
+		if err := balances.PayOrder(
+			ctx,
+			payload.UserID,
+			payload.Amount,
+		); err != nil {
+			if errors.Is(err, domain.ErrInvalidBalance) {
+				data, err := encodePaymentFailedPayload(
+					orderID,
+					payload.UserID,
+					payload.Amount,
+					err.Error(),
+				)
+				if err != nil {
+					u.logger.Error(
+						"failed to encode payment failed payload",
+						"order id", orderID.String(),
+						"error", err,
+					)
+					return domain.ErrInternal
+				}
+
+				event := domain.NewEvent(orderID, data)
+				if err := outbox.CreateEvent(ctx, event); err != nil {
+					u.logger.Error(
+						"failed to create payment failed event",
+						"order id", orderID.String(),
+						"error", err,
+					)
+					return domain.ErrInternal
+				}
+
+				return nil
 			}
 
 			u.logger.Error(
@@ -42,15 +75,15 @@ func (u *PayOrderUsecase) ProcessOrder(ctx context.Context, orderID uuid.UUID, p
 			return domain.ErrInternal
 		}
 
-		raw := domain.NewPayment(orderID, payload.UserID, payload.Amount)
+		raw := domain.NewPayment(
+			orderID,
+			payload.UserID,
+			payload.Amount,
+		)
 		payment, err := payments.CreatePayment(ctx, raw)
 		if err != nil {
-			if errors.Is(err, domain.ErrInvalidData) {
-				return err
-			}
-
 			u.logger.Error(
-				"failed create order",
+				"failed to create payment",
 				"order id", orderID.String(),
 				"error", err,
 			)
@@ -61,6 +94,7 @@ func (u *PayOrderUsecase) ProcessOrder(ctx context.Context, orderID uuid.UUID, p
 		if err != nil {
 			u.logger.Error(
 				"failed to encode payment payload",
+				"order id", orderID.String(),
 				"error", err,
 			)
 			return domain.ErrInternal
@@ -69,7 +103,8 @@ func (u *PayOrderUsecase) ProcessOrder(ctx context.Context, orderID uuid.UUID, p
 		event := domain.NewEvent(orderID, data)
 		if err := outbox.CreateEvent(ctx, event); err != nil {
 			u.logger.Error(
-				"failed to create event",
+				"failed to create payment event",
+				"order id", orderID.String(),
 				"error", err,
 			)
 			return domain.ErrInternal

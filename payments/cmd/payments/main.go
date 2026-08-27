@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"os"
@@ -79,8 +80,8 @@ func main() {
 			writer,
 			slogger,
 		)
-		if err != nil {
-			slogger.Debug("context cancelled")
+		if err != nil || !errors.Is(err, context.Canceled) {
+			slogger.Error("worker fail", "error", err)
 		}
 
 	}()
@@ -88,8 +89,9 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := reader.ReadMessages(notify, usecase); err != nil {
-			slogger.Debug("context cancelled")
+		err := reader.ReadMessages(notify, usecase)
+		if err != nil || !errors.Is(err, context.Canceled) {
+			slogger.Error("reader fail", "error", err)
 		}
 	}()
 

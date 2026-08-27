@@ -29,7 +29,7 @@ func (r *BalancesRepository) CreateBalance(ctx context.Context, balance *domain.
 }
 
 func (r *BalancesRepository) PayOrder(ctx context.Context, userId uuid.UUID, amount int64) error {
-	const query = `UPDATE balances SET bonuses = bonuses - $1, updated_at = NOW() WHERE user_id = $2`
+	const query = `UPDATE balances SET bonuses = bonuses - $1, updated_at = NOW() WHERE user_id = $2 AND bonuses >= $1`
 	tag, err := r.db.Exec(ctx, query, amount, userId)
 	if err != nil {
 		if checkConstraits(err) {
@@ -40,7 +40,7 @@ func (r *BalancesRepository) PayOrder(ctx context.Context, userId uuid.UUID, amo
 	}
 
 	if tag.RowsAffected() == 0 {
-		return domain.ErrBalanceNotFound
+		return domain.ErrInvalidBalance
 	}
 
 	return nil

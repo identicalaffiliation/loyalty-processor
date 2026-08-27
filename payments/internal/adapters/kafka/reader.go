@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/identicalaffiliation/loyalty-processor/payments/internal/config"
@@ -52,6 +53,10 @@ func (c *Consumer) ReadMessages(ctx context.Context, usecase ports.PayOrderUseca
 				"failed to parse key",
 				"error", err,
 			)
+			if err := c.reader.CommitMessages(ctx, msg); err != nil {
+				return fmt.Errorf("commit invalid message: %w", err)
+			}
+
 			continue
 		}
 
@@ -61,6 +66,10 @@ func (c *Consumer) ReadMessages(ctx context.Context, usecase ports.PayOrderUseca
 				"failed to parse payload",
 				"error", err,
 			)
+
+			if err := c.reader.CommitMessages(ctx, msg); err != nil {
+				return fmt.Errorf("commit invalid message: %w", err)
+			}
 			continue
 		}
 
@@ -69,10 +78,7 @@ func (c *Consumer) ReadMessages(ctx context.Context, usecase ports.PayOrderUseca
 		}
 
 		if err := c.reader.CommitMessages(ctx, msg); err != nil {
-			c.logger.Error(
-				"failed to commit message",
-				"error", err,
-			)
+			return fmt.Errorf("commit messages: %w", err)
 		}
 	}
 }
