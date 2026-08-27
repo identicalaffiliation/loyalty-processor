@@ -15,13 +15,13 @@ const (
 type OrderStatus string
 
 type Order struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	ProductID uuid.UUID
-	Amount    int64
-	Status    OrderStatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID   `json:"id"`
+	UserID    uuid.UUID   `json:"userId"`
+	ProductID uuid.UUID   `json:"productId"`
+	Amount    int64       `json:"amount"`
+	Status    OrderStatus `json:"status"`
+	CreatedAt time.Time   `json:"-"`
+	UpdatedAt time.Time   `json:"-"`
 }
 
 func NewOrder(userId, productId uuid.UUID, amount int64, status OrderStatus) *Order {

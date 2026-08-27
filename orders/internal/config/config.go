@@ -7,6 +7,8 @@ type Config struct {
 	PostgresConfig         PostgresConfig         `yaml:"postgres"`
 	ServerConfig           ServerConfig           `yaml:"server"`
 	InventoryServiceConfig InventoryServiceConfig `yaml:"inventory_service"`
+	KafkaConfig            KafkaConfig            `yaml:"kafka"`
+	OutboxConfig           OutboxConfig           `yaml:"outbox"`
 }
 
 type ServerConfig struct {
@@ -32,4 +34,19 @@ type PostgresConfig struct {
 	DbURL          string        `env:"DB_URL"`
 	MaxLifetime    time.Duration `yaml:"max_lifetime"`
 	MaxConnections int32         `yaml:"max_conns"`
+}
+
+type KafkaConfig struct {
+	Brokers      []string      `yaml:"brokers"`
+	Topic        string        `yaml:"topic"`
+	BatchSize    int           `yaml:"batch_size"`
+	Attempts     int           `yaml:"attempts"`
+	BatchTimeout time.Duration `yaml:"batch_timeout"`
+	ReadTimeout  time.Duration `yaml:"read_timeout"`
+	WriteTimeout time.Duration `yaml:"write_timeout"`
+}
+
+type OutboxConfig struct {
+	Limit int           `yaml:"limit"`
+	Tick  time.Duration `yaml:"tick"`
 }

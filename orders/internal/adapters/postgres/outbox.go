@@ -6,6 +6,6 @@ type OutboxRepository struct {
 	db ports.DBTX
 }
 
-func NewOutboxRepository(db ports.DBTX) *OrdersRepository {
-	return &OrdersRepository{db: db}
+func NewOutboxRepository(db ports.DBTX) *OutboxRepository {
+	return &OutboxRepository{db: db}
 }

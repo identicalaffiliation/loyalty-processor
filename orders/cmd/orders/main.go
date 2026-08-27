@@ -8,14 +8,17 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
+	"github.com/identicalaffiliation/loyalty-processor/orders/internal/adapters/kafka"
 	"github.com/identicalaffiliation/loyalty-processor/orders/internal/adapters/postgres"
 	"github.com/identicalaffiliation/loyalty-processor/orders/internal/adapters/rpc"
 	"github.com/identicalaffiliation/loyalty-processor/orders/internal/application"
 	"github.com/identicalaffiliation/loyalty-processor/orders/internal/config"
 	"github.com/identicalaffiliation/loyalty-processor/orders/pkg/httpserver"
 	"github.com/identicalaffiliation/loyalty-processor/orders/pkg/logger"
+	"github.com/identicalaffiliation/loyalty-processor/orders/pkg/outboxworker"
 	"github.com/identicalaffiliation/loyalty-processor/orders/pkg/psqlpool"
 )
 
@@ -53,7 +56,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	repo := postgres.NewOrdersRepository(postgresPool)
+	sender := kafka.NewProducer(&cfg.KafkaConfig)
+	defer func() {
+		if err := sender.Close(); err != nil {
+			slogger.Error(
+				"failed to close sender",
+				"error", err,
+			)
+		}
+	}()
+
+	wg := &sync.WaitGroup{}
+	outbox := postgres.NewOutboxRepository(postgresPool)
+
+	txManager := postgres.NewTxManager(postgresPool)
+
 	client, cleanup, err := rpc.NewInventoryClient(&cfg.InventoryServiceConfig)
 	if err != nil {
 		slogger.Error(
@@ -65,7 +82,7 @@ func main() {
 
 	defer cleanup()
 
-	create := application.NewCreateOrderUsecase(repo, slogger, client)
+	create := application.NewCreateOrderUsecase(txManager, slogger, client)
 
 	server := httpserver.RegisterRoutes(&cfg.ServerConfig, create)
 
@@ -82,8 +99,25 @@ func main() {
 	notify, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	<-notify.Done()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := outboxworker.Run(
+			notify,
+			cfg.OutboxConfig.Limit,
+			cfg.OutboxConfig.Tick,
+			outbox,
+			sender,
+			slogger,
+		)
+		if err != nil {
+			slogger.Debug("worker was stopped by notify signal")
+		}
+	}()
 
+	<-notify.Done()
+	wg.Wait()
+	
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ServerConfig.ShutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
