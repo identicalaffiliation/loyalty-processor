@@ -26,6 +26,7 @@ create_topics:
 migrate_up:
 	docker compose up -d --build inventory-migrator
 	docker compose up -d --build orders-migrator
+	docker compose up -d --build payments-migrator
 
 .PHONY: up
 up:
