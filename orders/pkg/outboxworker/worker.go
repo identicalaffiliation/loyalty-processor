@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/identicalaffiliation/loyalty-processor/orders/internal/domain"
 	"github.com/identicalaffiliation/loyalty-processor/orders/internal/ports"
 )
 
@@ -44,7 +45,7 @@ func Run(
 			}
 
 			for _, event := range events {
-				if err := outbox.MarkPublished(ctx, event.ID); err != nil {
+				if err := outbox.MarkPublished(ctx, event.ID, domain.Published); err != nil {
 					logger.Error(
 						"failed to mark published event",
 						"event id", event.ID.String(),

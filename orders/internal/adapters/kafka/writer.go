@@ -17,8 +17,8 @@ func NewProducer(cfg *config.KafkaConfig) *Producer {
 	return &Producer{
 		writer: &kafka.Writer{
 			Addr:         kafka.TCP(cfg.Brokers...),
-			Topic:        cfg.Topic,
-			MaxAttempts:  cfg.Attempts,
+			Topic:        cfg.ProduceTopic,
+			MaxAttempts:  cfg.MaxAttempts,
 			BatchSize:    cfg.BatchSize,
 			BatchTimeout: cfg.BatchTimeout,
 			ReadTimeout:  cfg.ReadTimeout,
@@ -31,11 +31,11 @@ func (p *Producer) WriteMessages(ctx context.Context, events []*domain.Event) er
 	messages := make([]kafka.Message, 0, len(events))
 	for _, event := range events {
 		messages = append(messages, kafka.Message{
-			Key:   []byte(event.ID.String()),
+			Key:   []byte(event.OrderID.String()),
 			Value: event.Payload,
 		})
 	}
-	
+
 	if err := p.writer.WriteMessages(ctx, messages...); err != nil {
 		return fmt.Errorf("write batch messages to kafka: %w", err)
 	}

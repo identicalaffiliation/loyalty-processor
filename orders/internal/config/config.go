@@ -37,13 +37,17 @@ type PostgresConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers      []string      `yaml:"brokers"`
-	Topic        string        `yaml:"topic"`
-	BatchSize    int           `yaml:"batch_size"`
-	Attempts     int           `yaml:"attempts"`
-	BatchTimeout time.Duration `yaml:"batch_timeout"`
-	ReadTimeout  time.Duration `yaml:"read_timeout"`
-	WriteTimeout time.Duration `yaml:"write_timeout"`
+	Brokers       []string      `yaml:"brokers"`
+	ConsumeTopic  string        `yaml:"consume_topic"`
+	ProduceTopic  string        `yaml:"produce_topic"`
+	ID            string        `yaml:"id"`
+	QueueCapacity int           `yaml:"capacity"`
+	BatchSize     int           `yaml:"batch_size"`
+	MaxAttempts   int           `yaml:"attempts"`
+	Partition     int           `yaml:"partition"`
+	BatchTimeout  time.Duration `yaml:"batch_timeout"`
+	ReadTimeout   time.Duration `yaml:"read_timeout"`
+	WriteTimeout  time.Duration `yaml:"write_timeout"`
 }
 
 type OutboxConfig struct {

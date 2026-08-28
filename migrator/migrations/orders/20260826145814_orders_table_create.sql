@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
+CREATE INDEX idx_orders_id ON orders(id);
 
 -- +goose Down
 DROP INDEX IF EXISTS idx_orders_user_created;

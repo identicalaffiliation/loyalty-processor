@@ -33,6 +33,53 @@ func (u *PayOrderUsecase) ProcessOrder(
 		payments := postgres.NewPaymentsRepository(tx)
 		outbox := postgres.NewOutboxRepository(tx)
 
+		raw := domain.NewPayment(
+			orderID,
+			payload.UserID,
+			payload.Amount,
+		)
+		payment, err := payments.CreatePayment(ctx, raw)
+		if err != nil {
+			if errors.Is(err, domain.ErrPaymentAlreadyExists) {
+				return nil
+			}
+
+			if errors.Is(err, domain.ErrInvalidData) {
+				data, err := encodePaymentFailedPayload(
+					orderID,
+					payload.UserID,
+				)
+				if err != nil {
+					u.logger.Error(
+						"failed to encode payment failed payload",
+						"order id", orderID.String(),
+						"error", err,
+					)
+					return domain.ErrInternal
+				}
+
+				event := domain.NewEvent(orderID, data)
+				if err := outbox.CreateEvent(ctx, event); err != nil {
+					u.logger.Error(
+						"failed to create payment failed event",
+						"order id", orderID.String(),
+						"error", err,
+					)
+
+					return domain.ErrInternal
+				}
+
+				return nil
+			}
+
+			u.logger.Error(
+				"failed to create payment",
+				"order id", orderID.String(),
+				"error", err,
+			)
+			return domain.ErrInternal
+		}
+
 		if err := balances.PayOrder(
 			ctx,
 			payload.UserID,
@@ -40,10 +87,8 @@ func (u *PayOrderUsecase) ProcessOrder(
 		); err != nil {
 			if errors.Is(err, domain.ErrInvalidBalance) {
 				data, err := encodePaymentFailedPayload(
-					orderID,
-					payload.UserID,
-					payload.Amount,
-					err.Error(),
+					payment.OrderID,
+					payment.UserID,
 				)
 				if err != nil {
 					u.logger.Error(
@@ -75,22 +120,11 @@ func (u *PayOrderUsecase) ProcessOrder(
 			return domain.ErrInternal
 		}
 
-		raw := domain.NewPayment(
-			orderID,
-			payload.UserID,
-			payload.Amount,
-		)
-		payment, err := payments.CreatePayment(ctx, raw)
-		if err != nil {
-			u.logger.Error(
-				"failed to create payment",
-				"order id", orderID.String(),
-				"error", err,
-			)
-			return domain.ErrInternal
-		}
-
-		data, err := encodePaymentPayload(payment)
+		data, err := encodePaymentPayload(&domain.Message{
+			Status:  domain.Success,
+			OrderID: payment.OrderID,
+			UserID:  payment.UserID,
+		})
 		if err != nil {
 			u.logger.Error(
 				"failed to encode payment payload",
