@@ -8,7 +8,7 @@ import (
 	"github.com/identicalaffiliation/loyalty-processor/payments/internal/domain"
 )
 
-func encodePaymentPayload(payment *domain.Payment) ([]byte, error) {
+func encodePaymentPayload(payment *domain.Message) ([]byte, error) {
 	payload, err := json.Marshal(payment)
 	if err != nil {
 		return nil, fmt.Errorf("encode payment payload: %w", err)
@@ -20,14 +20,11 @@ func encodePaymentPayload(payment *domain.Payment) ([]byte, error) {
 func encodePaymentFailedPayload(
 	orderID uuid.UUID,
 	userID uuid.UUID,
-	amount int64,
-	reason string,
 ) ([]byte, error) {
-	payload := domain.PaymentFailedPayload{
+	payload := domain.Message{
+		Status:  domain.Fail,
 		OrderID: orderID,
 		UserID:  userID,
-		Amount:  amount,
-		Reason:  reason,
 	}
 
 	return json.Marshal(payload)

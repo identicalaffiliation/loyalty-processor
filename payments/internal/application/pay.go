@@ -48,8 +48,6 @@ func (u *PayOrderUsecase) ProcessOrder(
 				data, err := encodePaymentFailedPayload(
 					orderID,
 					payload.UserID,
-					payload.Amount,
-					err.Error(),
 				)
 				if err != nil {
 					u.logger.Error(
@@ -89,10 +87,8 @@ func (u *PayOrderUsecase) ProcessOrder(
 		); err != nil {
 			if errors.Is(err, domain.ErrInvalidBalance) {
 				data, err := encodePaymentFailedPayload(
-					orderID,
-					payload.UserID,
-					payload.Amount,
-					err.Error(),
+					payment.OrderID,
+					payment.UserID,
 				)
 				if err != nil {
 					u.logger.Error(
@@ -124,7 +120,11 @@ func (u *PayOrderUsecase) ProcessOrder(
 			return domain.ErrInternal
 		}
 
-		data, err := encodePaymentPayload(payment)
+		data, err := encodePaymentPayload(&domain.Message{
+			Status:  domain.Success,
+			OrderID: payment.OrderID,
+			UserID:  payment.UserID,
+		})
 		if err != nil {
 			u.logger.Error(
 				"failed to encode payment payload",

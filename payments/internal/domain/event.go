@@ -6,6 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	Success EventStatus = "success"
+	Fail    EventStatus = "fail"
+)
+
+type EventStatus string
+
 type Event struct {
 	ID          uuid.UUID
 	OrderID     uuid.UUID
@@ -23,8 +30,8 @@ func NewEvent(orderId uuid.UUID, data []byte) *Event {
 }
 
 type PaymentFailedPayload struct {
-	OrderID uuid.UUID `json:"order_id"`
-	UserID  uuid.UUID `json:"user_id"`
+	OrderID uuid.UUID `json:"orderId"`
+	UserID  uuid.UUID `json:"userId"`
 	Amount  int64     `json:"amount"`
 	Reason  string    `json:"reason"`
 }

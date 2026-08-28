@@ -15,3 +15,7 @@ type CreateOrderUsecase interface {
 type GetOrdersUsecase interface {
 	GetOrdersByUser(ctx context.Context, id uuid.UUID) (*output.OrdersResponse, error)
 }
+
+type ProcessOrderUsecase interface {
+	ProcessOrder(ctx context.Context, key []byte, payload []byte) error
+}

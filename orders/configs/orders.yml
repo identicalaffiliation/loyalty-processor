@@ -20,9 +20,13 @@ server:
 
 kafka:
   brokers: [loyalty-kafka:9092]
-  topic: orders
-  batch_size: 50
+  consume_topic: payments
+  produce_topic: orders
+  id: orders-service
+  capacity: 50
   batch_timeout: 500ms
+  partition: 0
+  batch_size: 50
   attempts: 5
   read_timeout: 5s
   write_timeout: 5s

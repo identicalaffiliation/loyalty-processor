@@ -56,6 +56,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	fetcher := kafka.NewConsumer(&cfg.KafkaConfig, slogger)
+	defer func() {
+		if err := fetcher.Close(); err != nil {
+			slogger.Error(
+				"failed to close fetcher",
+				"error", err,
+			)
+		}
+	}()
+
 	sender := kafka.NewProducer(&cfg.KafkaConfig)
 	defer func() {
 		if err := sender.Close(); err != nil {
@@ -85,6 +95,8 @@ func main() {
 
 	create := application.NewCreateOrderUsecase(txManager, slogger, client)
 	get := application.NewGetOrdersUsecase(orders, slogger)
+	process := application.NewProcessPaymentUsecase(client, orders, slogger)
+
 	server := httpserver.RegisterRoutes(&cfg.ServerConfig, create, get)
 
 	go func() {
@@ -116,9 +128,21 @@ func main() {
 		}
 	}()
 
-	<-notify.Done()
-	wg.Wait()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := fetcher.ReadMessages(notify, process)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) {
+				slogger.Error(
+					"fetcher fail", "error", err,
+				)
+			}
+		}
+	}()
 
+	<-notify.Done()
+	
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ServerConfig.ShutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
@@ -128,4 +152,6 @@ func main() {
 		)
 		os.Exit(1)
 	}
+
+	wg.Wait()
 }

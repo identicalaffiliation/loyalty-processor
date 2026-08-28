@@ -30,3 +30,16 @@ func NewEvent(orderID uuid.UUID, status EventStatus, payload []byte) *Event {
 		Payload: payload,
 	}
 }
+
+const (
+	Success MessageStatus = "success"
+	Fail    MessageStatus = "fail"
+)
+
+type MessageStatus string
+
+type Message struct {
+	Status  MessageStatus `json:"status"`
+	OrderID uuid.UUID     `json:"orderId"`
+	UserID  uuid.UUID     `json:"userId"`
+}

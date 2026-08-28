@@ -31,7 +31,7 @@ func (p *Producer) WriteMessages(ctx context.Context, events []*domain.Event) er
 	messages := make([]kafka.Message, 0, len(events))
 	for _, event := range events {
 		messages = append(messages, kafka.Message{
-			Key:   []byte(event.ID.String()),
+			Key:   []byte(event.OrderID.String()),
 			Value: event.Payload,
 		})
 	}
