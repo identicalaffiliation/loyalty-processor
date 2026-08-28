@@ -29,10 +29,14 @@ func (r *PaymentsRepository) CreatePayment(ctx context.Context, payment *domain.
 		&created.CreatedAt,
 	)
 	if err != nil {
+		if checkUniqueViolation(err) {
+			return nil, domain.ErrPaymentAlreadyExists
+		}
+		
 		if checkConstraits(err) {
 			return nil, domain.ErrInvalidData
 		}
-		
+
 		return nil, fmt.Errorf("create payment: %w", err)
 	}
 
